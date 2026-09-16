@@ -1,0 +1,174 @@
+{
+	"info": {
+		"_postman_id": "student-management-crud-api-v1",
+		"name": "Student Management System API",
+		"description": "Complete Postman collection for testing the CRUD REST API of Student Management System.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Create Student (POST)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"name\": \"Laksha\",\n  \"register_number\": \"STU001\",\n  \"email\": \"laksha@example.com\",\n  \"department\": \"CSE\",\n  \"year\": 2,\n  \"phone\": \"9876543210\"\n}"
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/students/",
+					"protocol": "http",
+					"host": ["127", "0", "0", "1"],
+					"port": "8000",
+					"path": ["api", "students", ""]
+				}
+			}
+		},
+		{
+			"name": "2. Read All Students (GET)",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/students/",
+					"protocol": "http",
+					"host": ["127", "0", "0", "1"],
+					"port": "8000",
+					"path": ["api", "students", ""]
+				}
+			}
+		},
+		{
+			"name": "3. Read Single Student by ID (GET)",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/students/1/",
+					"protocol": "http",
+					"host": ["127", "0", "0", "1"],
+					"port": "8000",
+					"path": ["api", "students", "1", ""]
+				}
+			}
+		},
+		{
+			"name": "4. Update Student (PUT)",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"name\": \"Laksha M\",\n  \"register_number\": \"STU001\",\n  \"email\": \"laksha@example.com\",\n  \"department\": \"CSE\",\n  \"year\": 2,\n  \"phone\": \"9999999999\"\n}"
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/students/1/",
+					"protocol": "http",
+					"host": ["127", "0", "0", "1"],
+					"port": "8000",
+					"path": ["api", "students", "1", ""]
+				}
+			}
+		},
+		{
+			"name": "5. Partial Update Student (PATCH)",
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"phone\": \"9876543210\"\n}"
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/students/1/",
+					"protocol": "http",
+					"host": ["127", "0", "0", "1"],
+					"port": "8000",
+					"path": ["api", "students", "1", ""]
+				}
+			}
+		},
+		{
+			"name": "6. Delete Student (DELETE)",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/students/1/",
+					"protocol": "http",
+					"host": ["127", "0", "0", "1"],
+					"port": "8000",
+					"path": ["api", "students", "1", ""]
+				}
+			}
+		},
+		{
+			"name": "7. Search Students by Query (GET)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/students/?search=Laksha",
+					"protocol": "http",
+					"host": ["127", "0", "0", "1"],
+					"port": "8000",
+					"path": ["api", "students", ""],
+					"query": [
+						{
+							"key": "search",
+							"value": "Laksha"
+						}
+					]
+				}
+			}
+		},
+		{
+			"name": "8. Test Validation Error - Missing Name (POST)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"name\": \"\",\n  \"register_number\": \"STU099\",\n  \"email\": \"test@example.com\",\n  \"department\": \"CSE\",\n  \"year\": 2,\n  \"phone\": \"9876543210\"\n}"
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/students/",
+					"protocol": "http",
+					"host": ["127", "0", "0", "1"],
+					"port": "8000",
+					"path": ["api", "students", ""]
+				}
+			}
+		}
+	]
+}
