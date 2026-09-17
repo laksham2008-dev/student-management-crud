@@ -1,6 +1,7 @@
 # Python / Django
 __pycache__/
 *.py[cod]
+*.pyc
 *$py.class
 *.so
 .Python
@@ -39,6 +40,7 @@ dist-ssr/
 
 # Environment variables
 .env
+.env.*
 .env.local
 .env.development.local
 .env.test.local

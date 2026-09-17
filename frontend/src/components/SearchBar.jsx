@@ -5,12 +5,12 @@ const SearchBar = ({ searchTerm, onSearchChange, onClear, totalCount, filteredCo
   return (
     <div className="search-bar-container">
       <div className="search-input-wrapper">
-        <Search className="search-icon" size={18} />
+        <Search className="search-icon" size={18} aria-hidden="true" />
         <input
           id="student-search-input"
           type="text"
           className="search-input"
-          placeholder="Search students..."
+          placeholder="Search by name, reg no, dept, email..."
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
           aria-label="Search students by name, register number, department, or email"

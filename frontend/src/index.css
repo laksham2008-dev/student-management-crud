@@ -1,7 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
-  /* Color Palette - Premium Slate & Indigo */
+  /* Primary Indigo / Blue Palette */
   --primary-50: #eef2ff;
   --primary-100: #e0e7ff;
   --primary-200: #c7d2fe;
@@ -13,6 +13,7 @@
   --primary-800: #3730a3;
   --primary-900: #312e81;
 
+  /* Neutrals & Slate Backgrounds */
   --bg-main: #f8fafc;
   --bg-surface: #ffffff;
   --bg-surface-subtle: #f1f5f9;
@@ -25,6 +26,7 @@
   --border-color: #e2e8f0;
   --border-focus: #6366f1;
 
+  /* State Colors */
   --success-bg: #ecfdf5;
   --success-text: #065f46;
   --success-border: #a7f3d0;
@@ -38,18 +40,23 @@
   --warning-bg: #fffbeb;
   --warning-text: #92400e;
   --warning-border: #fde68a;
+  --warning-main: #f59e0b;
 
   --info-bg: #eff6ff;
   --info-text: #1e40af;
   --info-border: #bfdbfe;
+  --info-main: #3b82f6;
 
+  /* Radius & Shadows */
+  --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
   --radius-full: 9999px;
 
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.08);
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);

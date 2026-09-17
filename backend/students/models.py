@@ -1,7 +1,7 @@
-import re
 from django.db import models
 from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
+from college.models import CollegeSettings, Department
 
 # Indian 10-digit mobile number validator (starts with 6, 7, 8, or 9 followed by 9 digits)
 phone_regex = RegexValidator(
@@ -11,11 +11,20 @@ phone_regex = RegexValidator(
 
 
 class Student(models.Model):
+    GENDER_CHOICES = (
+        ('male', 'Male'),
+        ('female', 'Female'),
+    )
     YEAR_CHOICES = (
         (1, '1st Year'),
         (2, '2nd Year'),
         (3, '3rd Year'),
         (4, '4th Year'),
+    )
+    STATUS_CHOICES = (
+        ('active', 'Active'),
+        ('graduated', 'Graduated'),
+        ('left_college', 'Left College'),
     )
 
     name = models.CharField(
@@ -37,12 +46,22 @@ class Student(models.Model):
         null=False,
         help_text="Unique email address"
     )
-    department = models.CharField(
+    legacy_department = models.CharField(
         max_length=100,
-        blank=False,
-        null=False,
-        help_text="Department name (max 100 characters, e.g. CSE, ECE, MECH)"
+        blank=True,
+        null=True,
+        help_text="Preserved department text from the original schema"
     )
+    college = models.ForeignKey(CollegeSettings, on_delete=models.CASCADE, null=True, blank=True, related_name='students')
+    department = models.ForeignKey(
+        Department,
+        on_delete=models.PROTECT,
+        related_name='students',
+        blank=True,
+        null=True,
+        help_text="Department assigned to the student"
+    )
+    gender = models.CharField(max_length=30, choices=GENDER_CHOICES, blank=True, null=True)
     year = models.IntegerField(
         choices=YEAR_CHOICES,
         validators=[
@@ -60,10 +79,35 @@ class Student(models.Model):
         null=False,
         help_text="10-digit Indian mobile number"
     )
+    cutoff_mark = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        blank=True,
+        null=True,
+    )
+    previous_semester_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        blank=True,
+        null=True,
+    )
+    cgpa = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(10)],
+        blank=True,
+        null=True,
+    )
+    admission_year = models.PositiveIntegerField(blank=True, null=True)
+    backlog_count = models.PositiveIntegerField(default=0, validators=[MinValueValidator(0)])
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     created_at = models.DateTimeField(
         auto_now_add=True,
         help_text="Timestamp when the student record was created"
     )
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['-created_at']
@@ -72,6 +116,8 @@ class Student(models.Model):
 
     def clean(self):
         super().clean()
+        if self.gender not in {None, 'male', 'female'}:
+            self.gender = None
         if self.name:
             self.name = self.name.strip()
             if not self.name:
@@ -80,10 +126,6 @@ class Student(models.Model):
             self.register_number = self.register_number.strip().upper()
             if not self.register_number:
                 raise ValidationError({'register_number': 'Register number cannot be empty.'})
-        if self.department:
-            self.department = self.department.strip()
-            if not self.department:
-                raise ValidationError({'department': 'Department cannot be empty.'})
         if self.phone:
             self.phone = self.phone.strip()
 
@@ -92,4 +134,4 @@ class Student(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.name} ({self.register_number}) - {self.department}"
+        return f"{self.name} ({self.register_number}) - {self.department or 'Unassigned'}"

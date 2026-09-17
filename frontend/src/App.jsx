@@ -1,36 +1,48 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import studentApi from './services/api';
-import StudentForm from './components/StudentForm';
-import StudentList from './components/StudentList';
-import SearchBar from './components/SearchBar';
-import ConfirmDialog from './components/ConfirmDialog';
+import React, { useState, useEffect, useCallback } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import studentApi, { departmentApi, settingsApi, authApi } from './services/api';
+import Header from './components/Header';
 import Toast from './components/Toast';
-import { GraduationCap, Users, Sparkles, BookOpen, Layers } from 'lucide-react';
+import Dashboard from './pages/Dashboard';
+import Students from './pages/Students';
+import Departments from './pages/Departments';
+import StudentEditor from './pages/StudentEditor';
+import Settings from './pages/Settings';
+import { SetupPage, LoginPage } from './pages/AuthPages';
 import './App.css';
 
 function App() {
   const [students, setStudents] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [departmentsLoading, setDepartmentsLoading] = useState(false);
+  const [departmentsError, setDepartmentsError] = useState('');
+  const [collegeName, setCollegeName] = useState('');
+  const [isCollegeConfigured, setIsCollegeConfigured] = useState(false);
+  const [collegeSetupName, setCollegeSetupName] = useState('');
+  const [isSavingCollege, setIsSavingCollege] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(Boolean(localStorage.getItem('student_management_token')));
+  const [authChecked, setAuthChecked] = useState(false);
+  const [setupRequired, setSetupRequired] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [serverError, setServerError] = useState(null);
   const [formServerErrors, setFormServerErrors] = useState({});
-  const [searchTerm, setSearchTerm] = useState('');
-  const [editingStudent, setEditingStudent] = useState(null);
-  const [deletingStudent, setDeletingStudent] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Toast notification state
   const [toast, setToast] = useState(null);
 
   // Helper to show toast messages
-  const showToast = (message, type = 'success', title = '') => {
+  const showToast = useCallback((message, type = 'success', title = '') => {
     setToast({ message, type, title });
-  };
+  }, []);
 
-  const closeToast = () => {
+  const closeToast = useCallback(() => {
     setToast(null);
-  };
+  }, []);
 
   // Fetch all students from the backend API
   const fetchStudents = useCallback(async () => {
+    if (!isAuthenticated) return;
     setIsLoading(true);
     setServerError(null);
     try {
@@ -38,118 +50,135 @@ function App() {
       setStudents(data);
     } catch (err) {
       console.error('Fetch students failed:', err);
-      setServerError(
-        'Unable to connect to the server. Please make sure the backend is running.'
-      );
-      showToast(
-        'Unable to connect to the server. Please make sure the backend is running.',
-        'error',
-        'Connection Error'
-      );
+      const errorMsg = 'Unable to connect to the server. Please make sure the Django backend is running.';
+      setServerError(errorMsg);
+      showToast(errorMsg, 'error', 'Connection Error');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [showToast, isAuthenticated]);
+
+  const fetchDepartments = useCallback(async () => {
+    if (!isAuthenticated) return;
+    setDepartmentsLoading(true);
+    setDepartmentsError('');
+    try {
+      setDepartments(await departmentApi.getAll());
+    } catch (err) {
+      setDepartmentsError('Unable to load departments. Please try again.');
+      showToast('Unable to load departments. Please try again.', 'error', 'Department Error');
+    } finally {
+      setDepartmentsLoading(false);
+    }
+  }, [showToast, isAuthenticated]);
+
+  const fetchCollegeSettings = useCallback(async () => {
+    if (!isAuthenticated) return;
+    try {
+      const result = await settingsApi.get();
+      if (result.configured && result.data) {
+        setCollegeName(result.data.college_name);
+        setIsCollegeConfigured(true);
+      }
+    } catch (err) {
+      showToast(err.message || 'Unable to load college settings.', 'error', 'Connection Error');
+    }
+  }, [showToast, isAuthenticated]);
+
+  const saveCollegeSetup = async (event) => {
+    event.preventDefault();
+    if (!collegeSetupName.trim()) return;
+    setIsSavingCollege(true);
+    try {
+      const result = await settingsApi.save(collegeSetupName.trim());
+      setCollegeName(result.data.college_name);
+      setIsCollegeConfigured(true);
+      showToast('College name saved successfully.', 'success');
+    } catch (err) {
+      showToast(err.message || 'Unable to save college name.', 'error', 'Setup Error');
+    } finally {
+      setIsSavingCollege(false);
+    }
+  };
 
   // Initial load
   useEffect(() => {
-    fetchStudents();
-  }, [fetchStudents]);
+    if (!isAuthenticated) { authApi.status().then((result) => setSetupRequired(!result.configured)).catch(() => setSetupRequired(false)).finally(() => setAuthChecked(true)); return; }
+    Promise.all([fetchStudents(), fetchDepartments(), fetchCollegeSettings()]).finally(() => setAuthChecked(true));
+  }, [isAuthenticated, fetchStudents, fetchDepartments, fetchCollegeSettings]);
 
-  // Dynamic filter for search bar (Client-Side real-time search across Name, Reg No, Department, Email)
-  const filteredStudents = useMemo(() => {
-    if (!searchTerm.trim()) {
-      return students;
-    }
-    const query = searchTerm.trim().toLowerCase();
-    return students.filter((student) => {
-      const name = (student.name || '').toLowerCase();
-      const reg = (student.register_number || '').toLowerCase();
-      const dept = (student.department || '').toLowerCase();
-      const email = (student.email || '').toLowerCase();
-      return (
-        name.includes(query) ||
-        reg.includes(query) ||
-        dept.includes(query) ||
-        email.includes(query)
-      );
-    });
-  }, [students, searchTerm]);
+  if (!authChecked) return <div className="auth-page"><div className="spinner" /></div>;
+  if (!isAuthenticated) return <BrowserRouter><Routes><Route path="/setup" element={<SetupPage onAuthenticated={(data) => { setCollegeName(data?.college_name || ''); setIsAuthenticated(true); }} />} /><Route path="/login" element={<LoginPage onAuthenticated={(data) => { setCollegeName(data?.college_name || ''); setIsAuthenticated(true); }} />} /><Route path="*" element={<Navigate to={setupRequired ? '/setup' : '/login'} replace />} /></Routes></BrowserRouter>;
 
-  // Handle Form Submission (Add or Update)
-  const handleFormSubmit = async (formData) => {
+  // Create new student
+  const handleAddStudent = async (formData) => {
     setIsSubmitting(true);
     setFormServerErrors({});
-
     try {
-      if (editingStudent && editingStudent.id) {
-        // Update existing student
-        await studentApi.updateStudent(editingStudent.id, formData);
-        showToast('Student updated successfully.', 'success');
-        setEditingStudent(null);
-      } else {
-        // Create new student
-        await studentApi.createStudent(formData);
-        showToast('Student added successfully.', 'success');
-      }
+      await studentApi.createStudent(formData);
+      showToast('Student added successfully.', 'success');
       await fetchStudents();
+      return true;
     } catch (err) {
-      console.error('Save student failed:', err);
+      console.error('Add student failed:', err);
       if (err.data && err.data.details && typeof err.data.details === 'object') {
         setFormServerErrors(err.data.details);
         showToast(
-          err.message || 'Please fix the errors in the form.',
+          err.message || 'Please fix the errors highlighted in the form.',
           'error',
           'Validation Error'
         );
       } else {
         showToast(
-          err.message || 'An error occurred while saving the student.',
+          err.message || 'An error occurred while saving the student record.',
           'error',
           'Error'
         );
       }
+      return false;
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Handle Edit Action
-  const handleEditClick = (student) => {
-    setEditingStudent(student);
+  // Update existing student
+  const handleUpdateStudent = async (id, formData) => {
+    setIsSubmitting(true);
     setFormServerErrors({});
-    // Scroll smoothly to form
-    const formElement = document.getElementById('student-form-card');
-    if (formElement) {
-      formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    try {
+      await studentApi.updateStudent(id, formData);
+      showToast('Student updated successfully.', 'success');
+      await fetchStudents();
+      return true;
+    } catch (err) {
+      console.error('Update student failed:', err);
+      if (err.data && err.data.details && typeof err.data.details === 'object') {
+        setFormServerErrors(err.data.details);
+        showToast(
+          err.message || 'Please fix the errors highlighted in the form.',
+          'error',
+          'Validation Error'
+        );
+      } else {
+        showToast(
+          err.message || 'An error occurred while updating the student record.',
+          'error',
+          'Error'
+        );
+      }
+      return false;
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // Handle Cancel Edit
-  const handleCancelEdit = () => {
-    setEditingStudent(null);
-    setFormServerErrors({});
-  };
-
-  // Handle Delete Click (Open Modal)
-  const handleDeleteClick = (student) => {
-    setDeletingStudent(student);
-  };
-
-  // Handle Delete Confirm
-  const handleConfirmDelete = async () => {
-    if (!deletingStudent) return;
-    setIsDeleting(true);
-
+  // Delete student
+  const handleDeleteStudent = async (id) => {
     try {
-      await studentApi.deleteStudent(deletingStudent.id);
+      await studentApi.deleteStudent(id);
       showToast('Student deleted successfully.', 'success');
-      // If we were editing the deleted student, reset edit mode
-      if (editingStudent && editingStudent.id === deletingStudent.id) {
-        setEditingStudent(null);
-      }
-      setDeletingStudent(null);
       await fetchStudents();
+      return true;
     } catch (err) {
       console.error('Delete student failed:', err);
       showToast(
@@ -157,106 +186,77 @@ function App() {
         'error',
         'Delete Failed'
       );
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  // Cancel Delete
-  const handleCancelDelete = () => {
-    if (!isDeleting) {
-      setDeletingStudent(null);
+      return false;
     }
   };
 
   return (
-    <div className="app-layout">
-      {/* Toast Notification */}
-      <Toast toast={toast} onClose={closeToast} />
+    <BrowserRouter>
+      <div className="app-layout">
+        {/* Toast Notification Container */}
+        <Toast toast={toast} onClose={closeToast} />
 
-      {/* Delete Confirmation Modal */}
-      <ConfirmDialog
-        isOpen={Boolean(deletingStudent)}
-        title="Confirm Student Deletion"
-        message="Are you sure you want to delete this student?"
-        studentName={deletingStudent ? `${deletingStudent.name} (${deletingStudent.register_number})` : ''}
-        onConfirm={handleConfirmDelete}
-        onCancel={handleCancelDelete}
-        isDeleting={isDeleting}
-      />
+        {/* Global Navigation Header */}
+        <Header totalStudents={students.length} collegeName={collegeName} onLogout={async () => { await authApi.logout().catch(() => {}); localStorage.removeItem('student_management_token'); setIsAuthenticated(false); }} />
 
-      {/* Main Header / Navbar */}
-      <header className="app-header">
-        <div className="header-inner">
-          <div className="brand-group">
-            <div className="brand-logo">
-              <GraduationCap size={28} />
-            </div>
-            <div>
-              <h1 className="brand-title">Student Management System</h1>
-              <p className="brand-subtitle">Manage student records easily</p>
-            </div>
-          </div>
-
-          <div className="header-badges">
-            <div className="stat-pill" id="total-students-stat">
-              <Users size={16} />
-              <span>Total: <strong>{students.length}</strong></span>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Dashboard Content */}
-      <main className="main-content">
-        <div className="content-container">
-          {/* Top Form Section */}
-          <section aria-label="Student Form Section">
-            <StudentForm
-              editingStudent={editingStudent}
-              onSubmit={handleFormSubmit}
-              onCancel={handleCancelEdit}
-              isSubmitting={isSubmitting}
-              serverErrors={formServerErrors}
-            />
-          </section>
-
-          {/* Search and Records Section */}
-          <section className="records-section" aria-label="Student Records Section">
-            <div className="records-header-bar">
-              <SearchBar
-                searchTerm={searchTerm}
-                onSearchChange={setSearchTerm}
-                onClear={() => setSearchTerm('')}
-                totalCount={students.length}
-                filteredCount={filteredStudents.length}
+        {/* Main Routed Content */}
+        <main className="main-content">
+          <div className="content-container">
+            <Routes>
+              {/* Dashboard Route */}
+              <Route
+                path="/"
+                element={
+                  <Dashboard
+                    students={students}
+                    departments={departments}
+                    isLoading={isLoading}
+                    error={serverError}
+                    onRetry={() => fetchStudents()}
+                  />
+                }
               />
-            </div>
 
-            <StudentList
-              students={filteredStudents}
-              isLoading={isLoading}
-              error={serverError}
-              onEdit={handleEditClick}
-              onDeleteClick={handleDeleteClick}
-              onRetry={fetchStudents}
-            />
-          </section>
-        </div>
-      </main>
+              {/* Students Management Route */}
+              <Route
+                path="/students"
+                element={
+                  <Students
+                    students={students}
+                    isLoading={isLoading}
+                    serverError={serverError}
+                    onRefresh={() => fetchStudents()}
+                    onDeleteStudent={handleDeleteStudent}
+                    isSubmitting={isSubmitting}
+                    departments={departments}
+                  />
+                }
+              />
 
-      {/* Footer */}
-      <footer className="app-footer">
-        <div className="footer-inner">
-          <p>© {new Date().getFullYear()} Student Management System • Full-Stack Django REST & React</p>
-          <div className="footer-tags">
-            <span className="footer-tag">Django 5</span>
-            <span className="footer-tag">React 19</span>
-            <span className="footer-tag">SQLite</span>
+              <Route path="/departments" element={<Departments showToast={showToast} />} />
+              <Route path="/settings" element={<Settings showToast={showToast} collegeName={collegeName} />} />
+              <Route path="/students/add" element={<StudentEditor departments={departments} departmentsLoading={departmentsLoading} departmentsError={departmentsError} onRefreshDepartments={fetchDepartments} onSave={async (_, data) => handleAddStudent(data)} showToast={showToast} />} />
+              <Route path="/students/edit/:id" element={<StudentEditor departments={departments} departmentsLoading={departmentsLoading} departmentsError={departmentsError} onRefreshDepartments={fetchDepartments} onSave={handleUpdateStudent} showToast={showToast} />} />
+
+              {/* Fallback redirect to / */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
           </div>
-        </div>
-      </footer>
-    </div>
+        </main>
+
+        {/* Global Footer */}
+        <footer className="app-footer">
+          <div className="footer-inner">
+            <p>© {new Date().getFullYear()} Student Management System • Professional College Full-Stack Project</p>
+            <div className="footer-tags">
+              <span className="footer-tag">React Router</span>
+              <span className="footer-tag">Django REST Framework</span>
+              <span className="footer-tag">SQLite</span>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </BrowserRouter>
   );
 }
 

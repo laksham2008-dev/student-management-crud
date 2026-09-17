@@ -3,16 +3,26 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 from .models import Student
+from college.models import Department
+from college.models import UserAccess
+from django.contrib.auth.models import User
 
 
 class StudentAPITestCase(TestCase):
     def setUp(self):
         self.client = APIClient()
+        self.user = User.objects.create_user(username='admin@example.com', password='StrongPass123!')
+        UserAccess.objects.create(user=self.user, role='admin', can_view_students=True, can_add_students=True, can_edit_students=True, can_delete_students=True, can_manage_departments=True)
+        self.client.force_authenticate(user=self.user)
+        self.cse = Department.objects.create(name="CSE")
+        self.ece = Department.objects.create(name="ECE")
+        self.mech = Department.objects.create(name="MECH")
         self.valid_student_data = {
             "name": "Laksha",
             "register_number": "STU001",
             "email": "laksha@example.com",
-            "department": "CSE",
+            "gender": "male",
+            "department": self.cse.id,
             "year": 2,
             "phone": "9876543210"
         }
@@ -20,7 +30,8 @@ class StudentAPITestCase(TestCase):
             name="John Doe",
             register_number="STU002",
             email="john@example.com",
-            department="ECE",
+            department=self.ece,
+            gender="male",
             year=3,
             phone="9876543211"
         )
@@ -99,7 +110,8 @@ class StudentAPITestCase(TestCase):
             "name": "John Updated",
             "register_number": "STU002",
             "email": "john_updated@example.com",
-            "department": "ECE",
+            "gender": "male",
+            "department": self.ece.id,
             "year": 4,
             "phone": "9876543211"
         }
@@ -141,7 +153,8 @@ class StudentAPITestCase(TestCase):
             name="Alice Smith",
             register_number="STU003",
             email="alice@example.com",
-            department="MECH",
+            department=self.mech,
+            gender="female",
             year=1,
             phone="9876543212"
         )

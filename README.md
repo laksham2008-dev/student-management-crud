@@ -1,5 +1,15 @@
 # Student Management System
 
+## Security and Architecture
+
+This project uses a React/Vite frontend, Django REST Framework API, Django ORM, and SQLite database:
+
+User -> React Frontend -> REST API -> Django REST Framework -> Django ORM -> SQLite
+
+The first-time setup creates the institution profile and an administrator account. Passwords are hashed by Django and private student, department, dashboard, and settings APIs require a DRF token. The frontend stores only the authentication token and redirects expired sessions to `/login`.
+
+Key routes include `/setup`, `/login`, `/`, `/students`, `/students/add`, `/students/edit/:id`, `/departments`, and `/settings`. Student CRUD validates identity, department, phone, gender, academic fields, status, and backlog count on both client and server. Dashboard counts and department summaries are calculated from API/database records.
+
 A college-level full-stack **CRUD (Create, Read, Update, Delete) Web Application** designed for managing student records. Built using a decoupled architecture with **Django REST Framework** powering the backend API, **React (Vite)** on the frontend, and **SQLite** as the database.
 
 ---

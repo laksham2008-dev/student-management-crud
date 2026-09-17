@@ -39,7 +39,7 @@ const ConfirmDialog = ({ isOpen, title, message, studentName, onConfirm, onCance
         </div>
 
         <div className="modal-body">
-          <h3 className="modal-title">{title || "Confirm Delete"}</h3>
+          <h3 className="modal-title">{title || "Confirm Student Deletion"}</h3>
           <p className="modal-message">{message || "Are you sure you want to delete this student?"}</p>
           {studentName && (
             <div className="modal-target-highlight">

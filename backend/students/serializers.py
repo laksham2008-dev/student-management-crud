@@ -1,6 +1,8 @@
 import re
 from rest_framework import serializers
 from .models import Student
+from college.models import Department
+from college.permissions import get_user_college
 
 
 class StudentSerializer(serializers.ModelSerializer):
@@ -11,12 +13,32 @@ class StudentSerializer(serializers.ModelSerializer):
             'name',
             'register_number',
             'email',
+            'gender',
             'department',
+            'department_name',
             'year',
             'phone',
+            'cutoff_mark',
+            'previous_semester_percentage',
+            'cgpa',
+            'admission_year',
+            'backlog_count',
+            'status',
             'created_at',
+            'updated_at',
         ]
-        read_only_fields = ['id', 'created_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+        extra_kwargs = {
+            'department': {'required': True, 'allow_null': True},
+            'cutoff_mark': {'required': False, 'allow_null': True},
+            'previous_semester_percentage': {'required': False, 'allow_null': True},
+            'cgpa': {'required': False, 'allow_null': True},
+            'admission_year': {'required': False, 'allow_null': True},
+            'backlog_count': {'required': False},
+            'status': {'required': False},
+        }
+
+    department_name = serializers.CharField(source='department.name', read_only=True, allow_null=True)
 
     def validate_name(self, value):
         stripped = value.strip()
@@ -56,12 +78,42 @@ class StudentSerializer(serializers.ModelSerializer):
         return email_clean
 
     def validate_department(self, value):
-        stripped = value.strip()
-        if not stripped:
-            raise serializers.ValidationError("Department is required and cannot be blank.")
-        if len(stripped) > 100:
-            raise serializers.ValidationError("Department cannot exceed 100 characters.")
-        return stripped
+        if value is None:
+            if self.instance is None:
+                raise serializers.ValidationError("Department is required.")
+            raise serializers.ValidationError("Select a department before saving this student.")
+        if not Department.objects.filter(pk=value.pk).exists():
+            raise serializers.ValidationError("Selected department does not exist.")
+        request = self.context.get('request')
+        college = get_user_college(request.user) if request else None
+        if college and value.college_id not in (None, college.id):
+            raise serializers.ValidationError("Selected department does not belong to your institution.")
+        return value
+
+    def validate_gender(self, value):
+        if value not in {'male', 'female'}:
+            raise serializers.ValidationError("Gender is required.")
+        return value
+
+    def validate_cutoff_mark(self, value):
+        if value is not None and value < 0:
+            raise serializers.ValidationError("Cutoff mark cannot be negative.")
+        return value
+
+    def validate_previous_semester_percentage(self, value):
+        if value is not None and not 0 <= value <= 100:
+            raise serializers.ValidationError("Previous semester percentage must be between 0 and 100.")
+        return value
+
+    def validate_cgpa(self, value):
+        if value is not None and not 0 <= value <= 10:
+            raise serializers.ValidationError("CGPA must be between 0 and 10.")
+        return value
+
+    def validate_backlog_count(self, value):
+        if value is None or int(value) < 0 or int(value) != value:
+            raise serializers.ValidationError('Backlog count must be a non-negative whole number.')
+        return int(value)
 
     def validate_year(self, value):
         try:

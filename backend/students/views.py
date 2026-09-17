@@ -3,6 +3,8 @@ from rest_framework.response import Response
 from django.db.models import Q
 from .models import Student
 from .serializers import StudentSerializer
+from college.permissions import CollegeActionPermission
+from college.permissions import get_user_college
 
 
 class StudentViewSet(viewsets.ModelViewSet):
@@ -17,21 +19,29 @@ class StudentViewSet(viewsets.ModelViewSet):
     """
     queryset = Student.objects.all().order_by('-created_at')
     serializer_class = StudentSerializer
+    permission_classes = [CollegeActionPermission]
 
     def get_queryset(self):
         """
         Optionally filters students by search query across name, register_number, department, email.
         """
-        queryset = Student.objects.all().order_by('-created_at')
+        queryset = Student.objects.select_related('department').all().order_by('-created_at')
+        college = get_user_college(self.request.user)
+        if college:
+            queryset = queryset.filter(college=college)
         search_query = self.request.query_params.get('search', None)
         if search_query:
             search_query = search_query.strip()
             queryset = queryset.filter(
                 Q(name__icontains=search_query) |
                 Q(register_number__icontains=search_query) |
-                Q(department__icontains=search_query) |
+                Q(department__name__icontains=search_query) |
                 Q(email__icontains=search_query)
             )
+        for key in ('department', 'year', 'gender', 'status'):
+            value = self.request.query_params.get(key)
+            if value:
+                queryset = queryset.filter(**{key: value})
         return queryset
 
     def create(self, request, *args, **kwargs):
@@ -51,6 +61,10 @@ class StudentViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED,
             headers=headers
         )
+
+    def perform_create(self, serializer):
+        college = get_user_college(self.request.user)
+        serializer.save(college=college)
 
     def retrieve(self, request, *args, **kwargs):
         """
