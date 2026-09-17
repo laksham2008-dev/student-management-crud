@@ -1,11 +1,120 @@
-{
+﻿{
 	"info": {
 		"_postman_id": "student-management-crud-api-v1",
 		"name": "Student Management System API",
-		"description": "Complete Postman collection for testing the CRUD REST API of Student Management System.",
+		"description": "Postman collection for the Student Management System REST API. Private requests send the DRF token through the collection-level Authorization header (\"Token {{token}}\"). Run \"0. Setup Status\" and \"0b. Login and Store Token\" first: the login request stores the returned token in the {{token}} variable, and \"9. Read All Departments\" stores the first department id in {{departmentId}} for the student payloads.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
+	"auth": {
+		"type": "apikey",
+		"apikey": [
+			{
+				"key": "key",
+				"value": "Authorization",
+				"type": "string"
+			},
+			{
+				"key": "value",
+				"value": "Token {{token}}",
+				"type": "string"
+			},
+			{
+				"key": "in",
+				"value": "header",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://127.0.0.1:8000"
+		},
+		{
+			"key": "token",
+			"value": ""
+		},
+		{
+			"key": "departmentId",
+			"value": "3"
+		}
+	],
 	"item": [
+		{
+			"name": "0. Setup Status (GET)",
+			"auth": {
+				"type": "noauth"
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/setup/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"setup",
+						""
+					]
+				}
+			}
+		},
+		{
+			"name": "0b. Login and Store Token (POST)",
+			"auth": {
+				"type": "noauth"
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"const body = pm.response.json();",
+							"if (body && body.token) {",
+							"    pm.collectionVariables.set('token', body.token);",
+							"}"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"YourPassword123\"\n}"
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/login/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"login",
+						""
+					]
+				}
+			}
+		},
 		{
 			"name": "1. Create Student (POST)",
 			"request": {
@@ -18,14 +127,23 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"name\": \"Laksha\",\n  \"register_number\": \"STU001\",\n  \"email\": \"laksha@example.com\",\n  \"department\": \"CSE\",\n  \"year\": 2,\n  \"phone\": \"9876543210\"\n}"
+					"raw": "{\n  \"name\": \"Laksha\",\n  \"register_number\": \"STU001\",\n  \"email\": \"laksha@example.com\",\n  \"department\": {{departmentId}},\n  \"year\": 2,\n  \"phone\": \"9876543210\"\n}"
 				},
 				"url": {
 					"raw": "http://127.0.0.1:8000/api/students/",
 					"protocol": "http",
-					"host": ["127", "0", "0", "1"],
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
 					"port": "8000",
-					"path": ["api", "students", ""]
+					"path": [
+						"api",
+						"students",
+						""
+					]
 				}
 			}
 		},
@@ -42,9 +160,18 @@
 				"url": {
 					"raw": "http://127.0.0.1:8000/api/students/",
 					"protocol": "http",
-					"host": ["127", "0", "0", "1"],
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
 					"port": "8000",
-					"path": ["api", "students", ""]
+					"path": [
+						"api",
+						"students",
+						""
+					]
 				}
 			}
 		},
@@ -61,9 +188,19 @@
 				"url": {
 					"raw": "http://127.0.0.1:8000/api/students/1/",
 					"protocol": "http",
-					"host": ["127", "0", "0", "1"],
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
 					"port": "8000",
-					"path": ["api", "students", "1", ""]
+					"path": [
+						"api",
+						"students",
+						"1",
+						""
+					]
 				}
 			}
 		},
@@ -79,14 +216,24 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"name\": \"Laksha M\",\n  \"register_number\": \"STU001\",\n  \"email\": \"laksha@example.com\",\n  \"department\": \"CSE\",\n  \"year\": 2,\n  \"phone\": \"9999999999\"\n}"
+					"raw": "{\n  \"name\": \"Laksha M\",\n  \"register_number\": \"STU001\",\n  \"email\": \"laksha@example.com\",\n  \"department\": {{departmentId}},\n  \"year\": 2,\n  \"phone\": \"9999999999\"\n}"
 				},
 				"url": {
 					"raw": "http://127.0.0.1:8000/api/students/1/",
 					"protocol": "http",
-					"host": ["127", "0", "0", "1"],
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
 					"port": "8000",
-					"path": ["api", "students", "1", ""]
+					"path": [
+						"api",
+						"students",
+						"1",
+						""
+					]
 				}
 			}
 		},
@@ -107,9 +254,19 @@
 				"url": {
 					"raw": "http://127.0.0.1:8000/api/students/1/",
 					"protocol": "http",
-					"host": ["127", "0", "0", "1"],
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
 					"port": "8000",
-					"path": ["api", "students", "1", ""]
+					"path": [
+						"api",
+						"students",
+						"1",
+						""
+					]
 				}
 			}
 		},
@@ -121,9 +278,19 @@
 				"url": {
 					"raw": "http://127.0.0.1:8000/api/students/1/",
 					"protocol": "http",
-					"host": ["127", "0", "0", "1"],
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
 					"port": "8000",
-					"path": ["api", "students", "1", ""]
+					"path": [
+						"api",
+						"students",
+						"1",
+						""
+					]
 				}
 			}
 		},
@@ -135,9 +302,18 @@
 				"url": {
 					"raw": "http://127.0.0.1:8000/api/students/?search=Laksha",
 					"protocol": "http",
-					"host": ["127", "0", "0", "1"],
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
 					"port": "8000",
-					"path": ["api", "students", ""],
+					"path": [
+						"api",
+						"students",
+						""
+					],
 					"query": [
 						{
 							"key": "search",
@@ -159,14 +335,393 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"name\": \"\",\n  \"register_number\": \"STU099\",\n  \"email\": \"test@example.com\",\n  \"department\": \"CSE\",\n  \"year\": 2,\n  \"phone\": \"9876543210\"\n}"
+					"raw": "{\n  \"name\": \"\",\n  \"register_number\": \"STU099\",\n  \"email\": \"test@example.com\",\n  \"department\": {{departmentId}},\n  \"year\": 2,\n  \"phone\": \"9876543210\"\n}"
 				},
 				"url": {
 					"raw": "http://127.0.0.1:8000/api/students/",
 					"protocol": "http",
-					"host": ["127", "0", "0", "1"],
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
 					"port": "8000",
-					"path": ["api", "students", ""]
+					"path": [
+						"api",
+						"students",
+						""
+					]
+				}
+			}
+		},
+		{
+			"name": "9. Read All Departments (GET)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"const body = pm.response.json();",
+							"const list = body && body.data ? body.data : [];",
+							"if (list.length > 0) {",
+							"    pm.collectionVariables.set('departmentId', String(list[0].id));",
+							"}"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/departments/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"departments",
+						""
+					]
+				}
+			}
+		},
+		{
+			"name": "10. Read Single Department (GET)",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/departments/{{departmentId}}/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"departments",
+						"{{departmentId}}",
+						""
+					]
+				}
+			}
+		},
+		{
+			"name": "11. Create Department (POST)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"name\": \"Information Technology\",\n  \"code\": \"IT\"\n}"
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/departments/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"departments",
+						""
+					]
+				}
+			}
+		},
+		{
+			"name": "12. Update Department (PUT)",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"name\": \"Computer Science and Engineering\",\n  \"code\": \"CSE\"\n}"
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/departments/{{departmentId}}/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"departments",
+						"{{departmentId}}",
+						""
+					]
+				}
+			}
+		},
+		{
+			"name": "13. Partial Update Department (PATCH)",
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"code\": \"CSE\"\n}"
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/departments/{{departmentId}}/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"departments",
+						"{{departmentId}}",
+						""
+					]
+				}
+			}
+		},
+		{
+			"name": "14. Delete Department (DELETE)",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/departments/{{departmentId}}/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"departments",
+						"{{departmentId}}",
+						""
+					]
+				}
+			}
+		},
+		{
+			"name": "15. List Users (GET)",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/users/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"users",
+						""
+					]
+				}
+			}
+		},
+		{
+			"name": "16. Create User (POST)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"email\": \"staff@example.com\",\n  \"password\": \"TemporaryPass123\"\n}"
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/users/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"users",
+						""
+					]
+				}
+			}
+		},
+		{
+			"name": "17. Update User Permissions (PATCH)",
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"role\": \"user\",\n  \"can_view_students\": true,\n  \"can_add_students\": true,\n  \"can_manage_departments\": false\n}"
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/users/2/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"users",
+						"2",
+						""
+					]
+				}
+			}
+		},
+		{
+			"name": "18. Read College Settings (GET)",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/settings/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"settings",
+						""
+					]
+				}
+			}
+		},
+		{
+			"name": "19. Update College Settings (PATCH)",
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"college_name\": \"Example Institution\",\n  \"admin_email\": \"admin@example.com\"\n}"
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/settings/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"settings",
+						""
+					]
+				}
+			}
+		},
+		{
+			"name": "20. Logout (POST)",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/logout/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"logout",
+						""
+					]
 				}
 			}
 		}

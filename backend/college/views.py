@@ -19,9 +19,9 @@ class CollegeSettingsView(APIView):
     """
     Singleton-style view for college settings.
 
-    GET  /api/college-settings/ → Returns the college settings, or 404 if not configured.
-    POST /api/college-settings/ → Creates the college settings (first time setup).
-    PATCH /api/college-settings/ → Updates the existing college settings.
+    GET   /api/settings/ → Returns the college settings, or 200 with configured=false when not set up yet.
+    POST  /api/settings/ → Creates or updates the college settings (admin only).
+    PATCH /api/settings/ → Updates the existing college settings (admin only).
     """
     permission_classes = [IsAuthenticated]
 
@@ -110,7 +110,7 @@ class SetupView(APIView):
     def post(self, request):
         existing = CollegeSettings.objects.first()
         if existing and existing.admin_user_id:
-            return Response({'detail': 'Institution setup is already complete.'}, status=400)
+            return Response({'detail': 'Institution setup is already complete.'}, status=status.HTTP_409_CONFLICT)
         name = str(request.data.get('college_name', '')).strip()
         admin_name = str(request.data.get('admin_name', '')).strip()
         email = str(request.data.get('email', '')).strip().lower()
@@ -153,10 +153,10 @@ class LoginView(APIView):
             Q(college_settings=settings_obj) | Q(access_profile__college=settings_obj)
         ).first() if settings_obj else None
         if not allowed_user:
-            return Response({'detail': 'Invalid email or password.'}, status=400)
+            return Response({'detail': 'Invalid email or password.'}, status=status.HTTP_401_UNAUTHORIZED)
         user = authenticate(username=email, password=request.data.get('password', ''))
         if not user:
-            return Response({'detail': 'Invalid email or password.'}, status=400)
+            return Response({'detail': 'Invalid email or password.'}, status=status.HTTP_401_UNAUTHORIZED)
         token, _ = Token.objects.get_or_create(user=user)
         return Response({'token': token.key, 'data': CollegeSettingsSerializer(settings_obj).data if settings_obj else None})
 
@@ -172,13 +172,16 @@ class DepartmentViewSet(viewsets.ModelViewSet):
     Department CRUD ViewSet.
 
     GET    /api/departments/       → List all departments
+    GET    /api/departments/{id}/  → Retrieve a single department
     POST   /api/departments/       → Create a new department
+    PUT    /api/departments/{id}/  → Update a department completely
+    PATCH  /api/departments/{id}/  → Partially update a department
     DELETE /api/departments/{id}/  → Delete a department (only if no students assigned)
     """
     queryset = Department.objects.all().order_by('name')
     serializer_class = DepartmentSerializer
     permission_classes = [DepartmentActionPermission]
-    http_method_names = ['get', 'post', 'delete', 'head', 'options']
+    http_method_names = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options']
 
     def get_queryset(self):
         queryset = Department.objects.all().order_by('name')
@@ -197,6 +200,28 @@ class DepartmentViewSet(viewsets.ModelViewSet):
             },
             status=status.HTTP_201_CREATED
         )
+
+    def update(self, request, *args, **kwargs):
+        """
+        Update an existing department completely (PUT) or partially (PATCH). Returns 200 OK.
+        """
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(
+            {
+                "success": True,
+                "message": "Department updated successfully.",
+                "data": DepartmentSerializer(instance).data
+            },
+            status=status.HTTP_200_OK
+        )
+
+    def partial_update(self, request, *args, **kwargs):
+        kwargs['partial'] = True
+        return self.update(request, *args, **kwargs)
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -225,15 +250,31 @@ class UserAccessViewSet(viewsets.ModelViewSet):
         return super().get_queryset()
 
     def partial_update(self, request, *args, **kwargs):
+        """
+        Update role/permission flags for a user. Only allow-listed, validated fields can be
+        changed; invalid values are rejected with 400 Bad Request instead of being stored.
+        """
         if not CollegeSettings.objects.filter(admin_user=request.user).exists() and not request.user.is_superuser:
             return Response({'detail': 'Only the college admin can change permissions.'}, status=status.HTTP_403_FORBIDDEN)
         instance = self.get_object()
-        allowed = {'role', 'can_view_students', 'can_add_students', 'can_edit_students', 'can_delete_students', 'can_manage_departments'}
-        for field in allowed:
-            if field in request.data:
-                setattr(instance, field, request.data[field])
-        instance.save()
-        return Response({'id': instance.id, 'username': instance.user.username, 'role': instance.role, 'can_view_students': instance.can_view_students, 'can_add_students': instance.can_add_students, 'can_edit_students': instance.can_edit_students, 'can_delete_students': instance.can_delete_students, 'can_manage_departments': instance.can_manage_departments})
+        allowed_fields = [
+            'role',
+            'can_view_students',
+            'can_add_students',
+            'can_edit_students',
+            'can_delete_students',
+            'can_manage_departments',
+        ]
+        unexpected = [field for field in request.data if field not in allowed_fields]
+        if unexpected:
+            return Response(
+                {'detail': f"Cannot update the following field(s): {', '.join(sorted(unexpected))}."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def create(self, request, *args, **kwargs):
         if not CollegeSettings.objects.filter(admin_user=request.user).exists() and not request.user.is_superuser:

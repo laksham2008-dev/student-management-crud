@@ -64,5 +64,10 @@ def custom_exception_handler(exc, context):
         custom_data["error"] = "Request Error"
         custom_data["details"] = response.data
 
+    # Surface the human-readable DRF message (401/403/405/409 etc.) at the top level so API
+    # clients can display a meaningful message without digging into "details".
+    if isinstance(response.data, dict) and 'detail' in response.data:
+        custom_data['detail'] = response.data['detail']
+
     response.data = custom_data
     return response

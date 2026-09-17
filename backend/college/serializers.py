@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from .models import CollegeSettings, Department, UserAccess
-from .models import CollegeSettings, Department, UserAccess
 from .permissions import get_user_college
 from students.models import Student
 
@@ -68,4 +67,21 @@ class UserAccessSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserAccess
         fields = ['id', 'username', 'role', 'can_view_students', 'can_add_students', 'can_edit_students', 'can_delete_students', 'can_manage_departments']
+
+    def validate_role(self, value):
+        if value not in dict(UserAccess.ROLE_CHOICES):
+            raise serializers.ValidationError("Role must be either 'admin' or 'user'.")
+        return value
+
+    def validate(self, attrs):
+        for field in (
+            'can_view_students',
+            'can_add_students',
+            'can_edit_students',
+            'can_delete_students',
+            'can_manage_departments',
+        ):
+            if field in attrs and not isinstance(attrs[field], bool):
+                raise serializers.ValidationError({field: 'This permission flag must be true or false.'})
+        return attrs
 

@@ -9,8 +9,6 @@ const Students = ({
   serverError = null,
   onRefresh,
   onDeleteStudent,
-  isSubmitting = false,
-  formServerErrors = {},
   departments = [],
 }) => {
   const navigate = useNavigate();

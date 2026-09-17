@@ -17,9 +17,6 @@ function App() {
   const [departmentsLoading, setDepartmentsLoading] = useState(false);
   const [departmentsError, setDepartmentsError] = useState('');
   const [collegeName, setCollegeName] = useState('');
-  const [isCollegeConfigured, setIsCollegeConfigured] = useState(false);
-  const [collegeSetupName, setCollegeSetupName] = useState('');
-  const [isSavingCollege, setIsSavingCollege] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(Boolean(localStorage.getItem('student_management_token')));
   const [authChecked, setAuthChecked] = useState(false);
   const [setupRequired, setSetupRequired] = useState(false);
@@ -64,7 +61,7 @@ function App() {
     setDepartmentsError('');
     try {
       setDepartments(await departmentApi.getAll());
-    } catch (err) {
+    } catch {
       setDepartmentsError('Unable to load departments. Please try again.');
       showToast('Unable to load departments. Please try again.', 'error', 'Department Error');
     } finally {
@@ -78,28 +75,11 @@ function App() {
       const result = await settingsApi.get();
       if (result.configured && result.data) {
         setCollegeName(result.data.college_name);
-        setIsCollegeConfigured(true);
       }
     } catch (err) {
       showToast(err.message || 'Unable to load college settings.', 'error', 'Connection Error');
     }
   }, [showToast, isAuthenticated]);
-
-  const saveCollegeSetup = async (event) => {
-    event.preventDefault();
-    if (!collegeSetupName.trim()) return;
-    setIsSavingCollege(true);
-    try {
-      const result = await settingsApi.save(collegeSetupName.trim());
-      setCollegeName(result.data.college_name);
-      setIsCollegeConfigured(true);
-      showToast('College name saved successfully.', 'success');
-    } catch (err) {
-      showToast(err.message || 'Unable to save college name.', 'error', 'Setup Error');
-    } finally {
-      setIsSavingCollege(false);
-    }
-  };
 
   // Initial load
   useEffect(() => {
@@ -227,7 +207,6 @@ function App() {
                     serverError={serverError}
                     onRefresh={() => fetchStudents()}
                     onDeleteStudent={handleDeleteStudent}
-                    isSubmitting={isSubmitting}
                     departments={departments}
                   />
                 }
@@ -235,8 +214,8 @@ function App() {
 
               <Route path="/departments" element={<Departments showToast={showToast} />} />
               <Route path="/settings" element={<Settings showToast={showToast} collegeName={collegeName} />} />
-              <Route path="/students/add" element={<StudentEditor departments={departments} departmentsLoading={departmentsLoading} departmentsError={departmentsError} onRefreshDepartments={fetchDepartments} onSave={async (_, data) => handleAddStudent(data)} showToast={showToast} />} />
-              <Route path="/students/edit/:id" element={<StudentEditor departments={departments} departmentsLoading={departmentsLoading} departmentsError={departmentsError} onRefreshDepartments={fetchDepartments} onSave={handleUpdateStudent} showToast={showToast} />} />
+              <Route path="/students/add" element={<StudentEditor departments={departments} departmentsLoading={departmentsLoading} departmentsError={departmentsError} onRefreshDepartments={fetchDepartments} onSave={async (_, data) => handleAddStudent(data)} formServerErrors={formServerErrors} isSubmitting={isSubmitting} showToast={showToast} />} />
+              <Route path="/students/edit/:id" element={<StudentEditor departments={departments} departmentsLoading={departmentsLoading} departmentsError={departmentsError} onRefreshDepartments={fetchDepartments} onSave={handleUpdateStudent} formServerErrors={formServerErrors} isSubmitting={isSubmitting} showToast={showToast} />} />
 
               {/* Fallback redirect to / */}
               <Route path="*" element={<Navigate to="/" replace />} />

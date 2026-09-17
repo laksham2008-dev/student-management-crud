@@ -211,15 +211,49 @@ Ensure you have the following installed on your system:
 
 ## 11. REST API Endpoints
 
+All endpoints below require the header `Authorization: Token <token>` except `GET/POST /api/setup/` and `POST /api/login/`, which are public.
+
+### Students
+
 | HTTP Method | Endpoint | Description | Status Code |
 | :--- | :--- | :--- | :--- |
 | `GET` | `/api/students/` | Retrieve all student records | `200 OK` |
 | `GET` | `/api/students/?search=<query>` | Filter students by name, reg no, department, email | `200 OK` |
+| `GET` | `/api/students/?department=<id>&year=<n>&gender=<v>&status=<v>` | Filter by department, year, gender or status | `200 OK` |
 | `GET` | `/api/students/{id}/` | Retrieve single student by ID | `200 OK` / `404 Not Found` |
 | `POST` | `/api/students/` | Create a new student record | `201 Created` / `400 Bad Request` |
 | `PUT` | `/api/students/{id}/` | Full update of student record | `200 OK` / `400 Bad Request` / `404` |
 | `PATCH` | `/api/students/{id}/` | Partial update of student fields | `200 OK` / `400 Bad Request` / `404` |
 | `DELETE` | `/api/students/{id}/` | Delete a student record | `204 No Content` / `404 Not Found` |
+
+> `department` is the **numeric primary key** of a department (from `GET /api/departments/`), not the department name.
+
+### Departments
+
+| HTTP Method | Endpoint | Description | Status Code |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/departments/` | List departments with student counts | `200 OK` |
+| `GET` | `/api/departments/{id}/` | Retrieve a single department | `200 OK` / `404 Not Found` |
+| `POST` | `/api/departments/` | Create a department | `201 Created` / `400 Bad Request` |
+| `PUT` | `/api/departments/{id}/` | Full update of a department | `200 OK` / `400 Bad Request` / `404` |
+| `PATCH` | `/api/departments/{id}/` | Partial update of a department | `200 OK` / `400 Bad Request` / `404` |
+| `DELETE` | `/api/departments/{id}/` | Delete a department (only when no students are assigned) | `200 OK` / `400 Bad Request` |
+
+### Authentication, users and settings
+
+| HTTP Method | Endpoint | Description | Status Code |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/setup/` | Institution setup status (`configured: true/false`) | `200 OK` (public) |
+| `POST` | `/api/setup/` | First-run institution + administrator creation, returns a token | `201 Created` / `400` / `409 Conflict` (public) |
+| `POST` | `/api/login/` | Authenticate and return a DRF token | `200 OK` / `401 Unauthorized` (public) |
+| `POST` | `/api/logout/` | Delete the current user's token | `200 OK` / `401` |
+| `GET` | `/api/settings/` | Institution settings | `200 OK` |
+| `POST` | `/api/settings/` | Create/update institution settings (admin) | `200 OK` / `403 Forbidden` |
+| `PATCH` | `/api/settings/` | Update the institution name and admin email (admin) | `200 OK` / `403` |
+| `GET` | `/api/users/` | List user access profiles (admin sees all, a user sees only their own) | `200 OK` |
+| `POST` | `/api/users/` | Create a user (admin) | `201 Created` / `400` / `403` |
+| `GET` | `/api/users/{id}/` | Retrieve a user access profile | `200 OK` / `404` |
+| `PATCH` | `/api/users/{id}/` | Update `role` and the `can_*` permissions (admin, validated) | `200 OK` / `400` / `403` |
 
 ---
 
@@ -228,9 +262,9 @@ Ensure you have the following installed on your system:
 | Field | Rule | Error Message |
 | :--- | :--- | :--- |
 | **Name** | Required, Max 100 chars, Non-empty string | "Student name is required and cannot be blank." |
-| **Register Number** | Required, Max 20 chars, Unique | "A student with this register number already exists." |
-| **Email** | Required, Unique, Valid email format | "A student with this email address already exists." |
-| **Department** | Required, Max 100 chars | "Department is required and cannot be blank." |
+| **Register Number** | Required, Max 20 chars, Unique | "Student with this register number already exists." |
+| **Email** | Required, Unique, Valid email format | "Student with this email already exists." |
+| **Department** | Required, must be the ID of an existing department | "Department is required." / "Selected department does not exist." |
 | **Year** | Required, Value must be `1`, `2`, `3`, or `4` | "Year must be 1, 2, 3, or 4." |
 | **Phone** | Required, 10-digit Indian mobile format (`^[6-9]\d{9}$`) | "Phone number must be a valid 10-digit Indian mobile number." |
 
@@ -240,26 +274,27 @@ Ensure you have the following installed on your system:
 
 Import `documentation/Student_Management_API.postman_collection.json` into Postman to run pre-configured test requests:
 
-1. **Create Student (`POST`)**:
+1. **Login (`POST`)**: `/api/login/` returns the DRF token used in the `Authorization: Token <token>` header.
+2. **Create Student (`POST`)** — `department` must be an existing department ID:
    ```json
    {
      "name": "Laksha",
      "register_number": "STU001",
      "email": "laksha@example.com",
-     "department": "CSE",
+     "department": 3,
      "year": 2,
      "phone": "9876543210"
    }
    ```
-2. **Read All Students (`GET`)**: `http://127.0.0.1:8000/api/students/`
-3. **Update Student (`PUT`)**: `http://127.0.0.1:8000/api/students/1/`
-4. **Delete Student (`DELETE`)**: `http://127.0.0.1:8000/api/students/1/`
+3. **Read All Students (`GET`)**: `http://127.0.0.1:8000/api/students/`
+4. **Update Student (`PUT`)**: `http://127.0.0.1:8000/api/students/1/`
+5. **Delete Student (`DELETE`)**: `http://127.0.0.1:8000/api/students/1/`
 
 ---
 
 ## 14. Future Enhancements
 
-- **User Authentication & Roles**: JWT-based login for Admin, Faculty, and Students.
+- **User Authentication & Roles**: Extend the existing DRF token authentication with JWT refresh tokens and Faculty/Student roles.
 - **Data Export**: Export student lists to CSV / PDF formats.
 - **Pagination**: Server-side pagination for handling 10,000+ student records.
 - **PostgreSQL Database**: Deployment readiness with PostgreSQL on AWS / Render.

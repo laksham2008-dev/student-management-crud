@@ -49,6 +49,7 @@ export const departmentApi = {
   async getAll() { const result = await request('departments'); return result.data || []; },
   async create(name, code = '') { return request('departments', '', { method: 'POST', body: JSON.stringify({ name, code }) }); },
   async delete(id) { return request('departments', id, { method: 'DELETE' }); },
+  async update(id, data) { return request('departments', id, { method: 'PUT', body: JSON.stringify(data) }); },
 };
 
 export const settingsApi = {
