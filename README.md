@@ -49,7 +49,21 @@ Educational institutions handle large volumes of student records spanning multip
 
 ---
 
-## 5. Technology Stack
+## 5. Application Screenshots
+
+Captured from the running application (React frontend + Django REST API + SQLite). Full-resolution images live in [`screenshots/`](screenshots/).
+
+| | |
+| :--- | :--- |
+| <img src="screenshots/01-setup.png" alt="First-run setup"/><br><sub><b>First-Run Setup</b> — create the institution profile and the administrator account.</sub> | <img src="screenshots/02-login.png" alt="Admin login"/><br><sub><b>Admin Login</b> — token-based sign-in with the registered admin email.</sub> |
+| <img src="screenshots/03-dashboard.png" alt="Dashboard"/><br><sub><b>Dashboard</b> — live totals, backlog summary, students by year and by department, and recently added students.</sub> | <img src="screenshots/04-student-list.png" alt="Student records"/><br><sub><b>Student Records</b> — searchable, filterable table (department, year, gender, status) served from SQLite.</sub> |
+| <img src="screenshots/05-add-student.png" alt="Add student form"/><br><sub><b>Add Student</b> — validated form covering identity, contact, and academic fields.</sub> | <img src="screenshots/06-edit-student.png" alt="Edit student form"/><br><sub><b>Edit Student</b> — the same form pre-populated with an existing record.</sub> |
+| <img src="screenshots/07-delete-confirmation.png" alt="Delete confirmation modal"/><br><sub><b>Delete Confirmation</b> — accessible modal naming the exact record before deletion.</sub> | <img src="screenshots/08-departments.png" alt="Department management"/><br><sub><b>Department Management</b> — add, edit, and delete departments with live student counts.</sub> |
+| <img src="screenshots/09-settings.png" alt="College settings"/><br><sub><b>College Settings</b> — institution profile, authorized admin email, and user permissions.</sub> | <img src="screenshots/11-responsive-mobile.png" alt="Responsive mobile layout"/><br><sub><b>Responsive Design</b> — the student records page on a mobile viewport.</sub> |
+
+---
+
+## 6. Technology Stack
 
 | Layer | Technology | Details |
 | :--- | :--- | :--- |
@@ -62,7 +76,7 @@ Educational institutions handle large volumes of student records spanning multip
 
 ---
 
-## 6. System Architecture
+## 7. System Architecture
 
 ```
 User (Browser)
@@ -79,7 +93,25 @@ Rendered UI Components ◄──[ JSON API Responses ]──────  SQLite
 
 ---
 
-## 7. Project Structure
+## 8. Database Schema (ER Diagram)
+
+The diagram below was generated from the live schema of `backend/db.sqlite3` (column names and types verified with `PRAGMA table_info`). It covers the six application tables — `auth_user`, `authtoken_token`, `college_collegesettings`, `college_department`, `college_useraccess`, and `students_student` — and their seven foreign-key relationships.
+
+![Student Management System database ER diagram](documentation/DATABASE_ER_DIAGRAM.png)
+
+**Key relationships & delete rules**
+
+- `auth_user` ↔ `authtoken_token`: 1 : 1 (`OneToOneField`, `CASCADE`) — one DRF token per user, deleted with the user.
+- `auth_user` → `college_useraccess`: 1 : 1 (`CASCADE`) — role plus `can_*` permission flags per user.
+- `auth_user` → `college_collegesettings.admin_user_id`: `SET_NULL` — the institution profile survives admin deletion.
+- `college_collegesettings` → `college_useraccess` / `college_department` / `students_student`: 1 : N (`CASCADE`) — every record is scoped to one institution.
+- `college_department` → `students_student.department_id`: `PROTECT` — a department holding students cannot be deleted.
+
+Django/DRF framework tables (`django_migrations`, `django_content_type`, `auth_permission`, `auth_group`, `django_session`, …) are omitted for clarity.
+
+---
+
+## 9. Project Structure
 
 ```
 Student-Management-CRUD/
@@ -90,53 +122,86 @@ Student-Management-CRUD/
 │   │   ├── settings.py          # CORS, DRF, Apps configuration
 │   │   ├── urls.py              # Main URL router
 │   │   └── wsgi.py
+│   ├── college/
+│   │   ├── migrations/          # College app migrations
+│   │   ├── __init__.py
+│   │   ├── admin.py             # Django Admin registration
+│   │   ├── apps.py
+│   │   ├── models.py            # CollegeSettings, Department & UserAccess models
+│   │   ├── permissions.py       # Token auth + role / permission enforcement
+│   │   ├── serializers.py       # Setup, settings, department & user serializers
+│   │   ├── tests.py             # Automated API unit tests
+│   │   ├── urls.py              # Setup, login, users, settings & department routes
+│   │   └── views.py             # Auth, dashboard, settings & department views
 │   ├── students/
-│   │   ├── migrations/          # Database migrations
-│   │   │   ├── 0001_initial.py
-│   │   │   └── __init__.py
+│   │   ├── migrations/          # Student app migrations (0001 – 0006)
 │   │   ├── __init__.py
 │   │   ├── admin.py             # Django Admin registration
 │   │   ├── apps.py
 │   │   ├── exceptions.py        # Custom API exception handler
 │   │   ├── models.py            # Student model & DB constraints
 │   │   ├── serializers.py       # DRF StudentSerializer & validation
-│   │   ├── tests.py             # 15 automated API unit tests
+│   │   ├── tests.py             # Automated API unit tests
 │   │   ├── urls.py              # Student API endpoints
 │   │   └── views.py             # StudentViewSet CRUD handlers
 │   ├── db.sqlite3               # SQLite database file
 │   ├── manage.py
-│   └── requirements.txt         # Python dependencies
+│   ├── requirements.txt         # Python dependencies
+│   └── run-backend.bat          # Windows helper: start the API server
 │
 ├── frontend/
+│   ├── public/
+│   │   ├── favicon.svg
+│   │   └── icons.svg
 │   ├── src/
+│   │   ├── assets/                  # Static images used by the UI
 │   │   ├── components/
-│   │   │   ├── ConfirmDialog.jsx # Delete confirmation modal
-│   │   │   ├── SearchBar.jsx     # Live search bar component
-│   │   │   ├── StudentForm.jsx   # Add/Edit form with validation
-│   │   │   ├── StudentList.jsx   # Responsive student records table
-│   │   │   └── Toast.jsx         # Notification alert popup
+│   │   │   ├── ConfirmDialog.jsx    # Delete confirmation modal
+│   │   │   ├── DashboardCards.jsx   # Dashboard stat cards
+│   │   │   ├── DepartmentChart.jsx  # Students-by-department distribution
+│   │   │   ├── Header.jsx           # Top navigation & branding
+│   │   │   ├── QuickActions.jsx     # Dashboard shortcut panel
+│   │   │   ├── RecentStudents.jsx   # Latest enrollments table
+│   │   │   ├── SearchBar.jsx        # Live search bar component
+│   │   │   ├── StudentForm.jsx      # Add/Edit form with validation
+│   │   │   ├── StudentList.jsx      # Filters + records container
+│   │   │   ├── StudentTable.jsx     # Responsive student records table
+│   │   │   ├── Toast.jsx            # Notification alert popup
+│   │   │   └── YearStats.jsx        # Students-by-year statistics
+│   │   ├── pages/
+│   │   │   ├── AuthPages.jsx        # First-run setup & login screens
+│   │   │   ├── Dashboard.jsx        # Overview dashboard
+│   │   │   ├── Departments.jsx      # Department management
+│   │   │   ├── Settings.jsx         # College settings & user permissions
+│   │   │   ├── StudentEditor.jsx    # Add / Edit student pages
+│   │   │   └── Students.jsx         # Student records page
 │   │   ├── services/
-│   │   │   └── api.js            # Centralized API service client
-│   │   ├── App.jsx               # Main application component & state
-│   │   ├── App.css               # Component & dashboard styling
-│   │   ├── index.css             # Design tokens, variables, typography
+│   │   │   └── api.js               # Centralized API service client
+│   │   ├── App.jsx                  # Routes & application state
+│   │   ├── App.css                  # Component & dashboard styling
+│   │   ├── index.css                # Design tokens, variables, typography
 │   │   └── main.jsx
 │   ├── .env.example
 │   ├── index.html
 │   ├── package.json
-│   └── vite.config.js
+│   ├── vite.config.js
+│   └── run-frontend.bat             # Windows helper: start the Vite dev server
 │
 ├── documentation/
-│   ├── API_DOCUMENTATION.md     # Detailed API specification & test matrix
-│   └── Student_Management_API.postman_collection.json # Ready-to-import Postman collection
+│   ├── API_DOCUMENTATION.md                             # Detailed API specification & test matrix
+│   ├── DATABASE_ER_DIAGRAM.png                          # ER diagram generated from the live schema
+│   └── Student_Management_API.postman_collection.json   # Ready-to-import Postman collection
 │
+├── screenshots/                 # Application walkthrough images (embedded in this README)
+│
+├── start-dev.bat                # Windows helper: run backend + frontend together
 ├── .gitignore
 └── README.md
 ```
 
 ---
 
-## 8. Prerequisites
+## 10. Prerequisites
 
 Ensure you have the following installed on your system:
 - **Python**: Version 3.10+ (Tested on Python 3.14)
@@ -146,7 +211,7 @@ Ensure you have the following installed on your system:
 
 ---
 
-## 9. Backend Setup Instructions
+## 11. Backend Setup Instructions
 
 1. **Navigate to backend directory**:
    ```bash
@@ -189,7 +254,7 @@ Ensure you have the following installed on your system:
 
 ---
 
-## 10. Frontend Setup Instructions
+## 12. Frontend Setup Instructions
 
 1. **Open a new terminal and navigate to frontend directory**:
    ```bash
@@ -209,7 +274,7 @@ Ensure you have the following installed on your system:
 
 ---
 
-## 11. REST API Endpoints
+## 13. REST API Endpoints
 
 All endpoints below require the header `Authorization: Token <token>` except `GET/POST /api/setup/` and `POST /api/login/`, which are public.
 
@@ -257,7 +322,7 @@ All endpoints below require the header `Authorization: Token <token>` except `GE
 
 ---
 
-## 12. Validation Rules Summary
+## 14. Validation Rules Summary
 
 | Field | Rule | Error Message |
 | :--- | :--- | :--- |
@@ -270,7 +335,7 @@ All endpoints below require the header `Authorization: Token <token>` except `GE
 
 ---
 
-## 13. API Testing with Postman
+## 15. API Testing with Postman
 
 Import `documentation/Student_Management_API.postman_collection.json` into Postman to run pre-configured test requests:
 
@@ -292,7 +357,7 @@ Import `documentation/Student_Management_API.postman_collection.json` into Postm
 
 ---
 
-## 14. Future Enhancements
+## 16. Future Enhancements
 
 - **User Authentication & Roles**: Extend the existing DRF token authentication with JWT refresh tokens and Faculty/Student roles.
 - **Data Export**: Export student lists to CSV / PDF formats.
@@ -302,7 +367,7 @@ Import `documentation/Student_Management_API.postman_collection.json` into Postm
 
 ---
 
-## 15. Connecting to GitHub Repository
+## 17. Connecting to GitHub Repository
 
 To link this local project to your personal GitHub repository, execute the following commands in the root directory:
 
